@@ -1,20 +1,35 @@
 import * as Handlebars from "handlebars";
 
-export default (templateSource: string, dataSource: any): string => {
+export type Partials = Record<string, string>;
+
+function escapeHtml(value: unknown): string {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+export default (templateSource: string, dataSource?: string | null, partials: Partials = {}): string => {
     if (!templateSource) {
-        return "<body>Select document to render</body>";
+        return "<p>Select document to render</p>";
     }
 
-    try {   
-        let data = JSON.parse(dataSource || "{}");
-        let template = Handlebars.compile(templateSource);
+    try {
+        const data = JSON.parse(dataSource || "{}");
+        const handlebars = Handlebars.create();
+
+        Object.entries(partials).forEach(([name, content]) => {
+            handlebars.registerPartial(name, content);
+        });
+
+        const template = handlebars.compile(templateSource);
         return template(data);
     } catch (ex) {
         return `
-            <body>
-                <h2>Error occured</h2>
-                <pre>${ex}</pre>
-            </body>
+            <h2>Error occurred</h2>
+            <pre>${escapeHtml(ex)}</pre>
         `;
     }
 };
